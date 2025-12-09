@@ -12,4 +12,17 @@ class Produtos extends Model
         'category_id',
         'stock_quantity'
     ];
+
+    protected $hidden = [
+        'category_id',
+        'created_at',
+        'updated_at'
+    ];
+
+    public function category()
+    {
+        return $this->belongsTo(Categorias::class, 'category_id');
+    }
+
 }
+

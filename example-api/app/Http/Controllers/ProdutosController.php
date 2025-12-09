@@ -10,14 +10,15 @@ class ProdutosController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(int $qnt=0)
+    public function index(Request $req)
     {
-        if ($qnt !== 0) {
-            return Produtos::limit($qnt)->get();
+        $query = Produtos::with('category');
+
+        if ($req->itens) {
+            $query->limit(intval($req->itens));
         }
-        else {
-            return Produtos::all();
-        }
+
+        return $query->get();
     }
 
     
@@ -62,24 +63,24 @@ class ProdutosController extends Controller
     public function show(string $id)
     {
         try {
-            $produto = Produtos::findOrFail($id);
+            $produto = Produtos::with('category')->findOrFail($id);
         } catch (\Throwable $th) {
             if ($th instanceof ModelNotFoundException) {
                 return response([
                     "message" => "Produto não encontrado!"
                 ], 404);
             }
-            else {
-                print($th);
-                return response([
-                    "message" => "Ocorreu um erro inesperado!"
-                ], 500);
-            }
+
+            return response([
+                "message" => "Ocorreu um erro inesperado!"
+            ], 500);
         }
+
         return $produto;
     }
 
-    public function getByCategory(int $category_id, int $qnt=0)
+
+    public function getByCategory(int $category_id, Request $req)
     {
         try {
             $categoriaExists = \App\Models\Categorias::findOrFail($category_id);
@@ -97,8 +98,10 @@ class ProdutosController extends Controller
             }
         }
 
-        if ($qnt !== 0) {
-            $produtos = Produtos::where('category_id', $category_id)->limit($qnt)->get();
+        $itens = intval($req->itens ?? 0);
+
+        if ($itens !== 0) {
+            $produtos = Produtos::where('category_id', $category_id)->limit($itens)->get();
         }
         else {
             $produtos = Produtos::where('category_id', $category_id)->get();
@@ -187,6 +190,92 @@ class ProdutosController extends Controller
 
         return response([
             "message" => "Produto deletado com sucesso!"
+        ], 200);
+    }
+
+    public function sell (Request $req ,int $id)
+    {
+        try {
+            $produto = Produtos::findOrFail($id);
+        } catch (\Throwable $th) {
+            if ($th instanceof ModelNotFoundException) {
+                return response([
+                    "message" => "Produto não encontrado!"
+                ], 404);
+            }
+            else {
+                print($th);
+                return response([
+                    "message" => "Ocorreu um erro inesperado!"
+                ], 500);
+            }
+        }
+        $quantity = intval($req->quantity);
+
+        if ($quantity <= 0) {
+            return response([
+                "message" => "A quantidade para venda deve ser maior que zero!"
+            ], 400);
+        }
+
+        if ($produto->stock_quantity < $quantity) {
+            return response([
+                "message" => "Quantidade em estoque insuficiente!",
+                "stock_quantity" => $produto->stock_quantity
+            ], 400);
+        }
+
+        $produto->update([
+            "stock_quantity" => $produto->stock_quantity - $quantity
+        ]);
+
+        return response([
+            "message" => "Produto vendido com sucesso!",
+            "resume" => [
+                "quantity_sold" => $quantity,
+                "total_price" => $quantity * $produto->price,
+                "stock_quantity" => $produto->stock_quantity
+            ],
+
+        ], 200);
+    }
+
+    public function restock (Request $req ,int $id)
+    {
+        try {
+            $produto = Produtos::findOrFail($id);
+        } catch (\Throwable $th) {
+            if ($th instanceof ModelNotFoundException) {
+                return response([
+                    "message" => "Produto não encontrado!"
+                ], 404);
+            }
+            else {
+                print($th);
+                return response([
+                    "message" => "Ocorreu um erro inesperado!"
+                ], 500);
+            }
+        }
+
+        $quantity = intval($req->quantity);
+
+        if ($quantity <= 0) {
+            return response([
+                "message" => "A quantidade para reposição deve ser maior que zero!"
+            ], 400);
+        }
+
+        $produto->update([
+            "stock_quantity" => $produto->stock_quantity + $quantity
+        ]);
+
+        return response([
+            "message" => "Produto reabastecido com sucesso!",
+            "resume" => [
+                "quantity_restocked" => $quantity,
+                "stock_quantity" => $produto->stock_quantity
+            ],
         ], 200);
     }
 }

@@ -9,12 +9,14 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 
-Route::get('/produtos/{qnt?}', [ProdutosController::class, 'index']);
+Route::get('/produtos', [ProdutosController::class, 'index']);
 Route::post('/produtos', [ProdutosController::class, 'store']);
 Route::get('/produtos/{id}', [ProdutosController::class, 'show']);
 Route::get('/produtos/category/{category_id}/{qnt?}', [ProdutosController::class, 'getByCategory']);
 Route::patch('/produtos/{id}', [ProdutosController::class, 'update']);
 Route::delete('/produtos/{id}', [ProdutosController::class, 'destroy']);
+Route::post('/produtos/{id}/sell', [ProdutosController::class, 'sell']);
+Route::post('/produtos/{id}/restock', [ProdutosController::class, 'restock']);
 
 Route::get('/categorias', [CategoriasController::class, 'index']);
 Route::post('/categorias', [CategoriasController::class, 'store']);
